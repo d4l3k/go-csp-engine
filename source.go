@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"hash"
-	"log"
 	"net/url"
 	"regexp"
 	"strings"
@@ -142,7 +141,6 @@ func (s HashSource) Check(ctx SourceContext) (bool, error) {
 		return false, err
 	}
 	hash := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	log.Printf("%q %q %q", s.Value, hash, ctx.Body)
 	return s.Value == hash, nil
 }
 
