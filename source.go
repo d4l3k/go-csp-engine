@@ -94,7 +94,7 @@ func (s SourceDirective) Check(ctx SourceContext) (bool, error) {
 
 	var originAllow bool
 	isUnsafe := ctx.UnsafeInline
-	if s.UnsafeInline {
+	if ctx.UnsafeInline && len(s.Nonces) == 0 && s.UnsafeInline {
 		isUnsafe = false
 		originAllow = true
 	}
