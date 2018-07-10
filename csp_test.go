@@ -116,15 +116,15 @@ func TestCSP(t *testing.T) {
 			html:   `<link rel="stylesheet" href="https://bar.com/style.css">`,
 			valid:  true,
 		},
-		// relative stylesheets
 		{
+			name:   "relative stylesheets",
 			policy: "style-src 'self'",
 			page:   "https://google.com",
 			html:   `<link rel="stylesheet" href="style.css">`,
 			valid:  true,
 		},
-		// parse inline stylesheets for CSS imports.
 		{
+			name:   "parse inline stylesheets for CSS imports",
 			policy: "style-src 'unsafe-inline'",
 			page:   "https://google.com",
 			html:   `<style>@import url('blah.html')</style>`,
