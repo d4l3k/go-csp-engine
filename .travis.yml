@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - 1.9.x
+  - 1.10.x
+  - tip
+
+allow_failures:
+  - go: tip
