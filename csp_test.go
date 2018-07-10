@@ -1,27 +1,31 @@
 package csp
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
 )
 
-func checkErr(t *testing.T, i int, got error, want string) {
+func checkErr(t *testing.T, got error, want string) {
 	if got == nil && want == "" {
 		return
 	} else if got != nil && want == "" {
-		t.Fatalf("%d. unexpected error %+v", i, got)
+		t.Fatalf("unexpected error %+v", got)
 	} else if got == nil && want != "" {
-		t.Fatalf("%d. expected error matching %q", i, want)
+		t.Fatalf("expected error matching %q", want)
 	}
 
 	if !strings.Contains(got.Error(), want) {
-		t.Fatalf("%d. expected error matching %q; got %+v", i, want, got)
+		t.Fatalf("expected error matching %q; got %+v", want, got)
 	}
 }
 
 func TestCSP(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
+		name                   string
 		policy                 string
 		page                   string
 		html                   string
@@ -126,8 +130,37 @@ func TestCSP(t *testing.T) {
 			html:   `<style>@import url('blah.html')</style>`,
 			valid:  false,
 		},
-		// unsafe-inline is disabled when nonce is present.
 		{
+			policy: "style-src 'unsafe-inline' 'self'",
+			page:   "https://google.com",
+			html:   `<style>@import url('blah.html')</style>`,
+			valid:  true,
+		},
+		{
+			name:   "parse inline stylesheets for @font-face imports",
+			policy: "style-src 'unsafe-inline'",
+			page:   "https://google.com",
+			html: `<style>@font-face {
+				font-family: "Open Sans";
+				src: url("/fonts/OpenSans-Regular-webfont.woff2") format("woff2"),
+						 url("/fonts/OpenSans-Regular-webfont.woff") format("woff");
+			}</style>`,
+			valid: false,
+		},
+		{
+			name:   "parse inline stylesheets for @font-face imports",
+			policy: "style-src 'unsafe-inline'; font-src 'self'",
+			page:   "https://google.com",
+			html: `<style>@font-face {
+				font-family: "Open Sans";
+				src: local(blah),
+				     url("/fonts/OpenSans-Regular-webfont.woff2") format("woff2"),
+						 url("/fonts/OpenSans-Regular-webfont.woff") format("woff");
+			}</style>`,
+			valid: true,
+		},
+		{
+			name:   "unsafe-inline is disabled when nonce is present",
 			policy: "default-src 'nonce-foo' 'unsafe-inline'",
 			page:   "https://google.com",
 			html:   `<script>blah</script>`,
@@ -136,16 +169,22 @@ func TestCSP(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		p, err := ParsePolicy(c.policy)
-		checkErr(t, i, err, c.policyErr)
-		page, err := url.Parse(c.page)
-		if err != nil {
-			t.Fatal(err)
-		}
-		valid, reports, err := ValidatePage(p, *page, strings.NewReader(c.html))
-		checkErr(t, i, err, c.validateErr)
-		if valid != c.valid {
-			t.Errorf("%d. ValidatePage(...) = %v; not %v; reports = %+v", i, valid, c.valid, reports)
-		}
+		i := i
+		c := c
+		t.Run(fmt.Sprintf("%d.%s", i, c.name), func(t *testing.T) {
+			t.Parallel()
+
+			p, err := ParsePolicy(c.policy)
+			checkErr(t, err, c.policyErr)
+			page, err := url.Parse(c.page)
+			if err != nil {
+				t.Fatal(err)
+			}
+			valid, reports, err := ValidatePage(p, *page, strings.NewReader(c.html))
+			checkErr(t, err, c.validateErr)
+			if valid != c.valid {
+				t.Errorf("ValidatePage(...) = %v; not %v; reports = %+v", valid, c.valid, reports)
+			}
+		})
 	}
 }
