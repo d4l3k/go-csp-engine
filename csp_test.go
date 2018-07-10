@@ -94,6 +94,30 @@ func TestCSP(t *testing.T) {
 			html:   `<script>bar</script>`,
 			valid:  true,
 		},
+		{
+			policy: "style-src 'unsafe-inline'",
+			page:   "https://google.com",
+			html:   `<style>bar</style>`,
+			valid:  true,
+		},
+		{
+			policy: "style-src 'none",
+			page:   "https://google.com",
+			html:   `<style>bar</style>`,
+			valid:  false,
+		},
+		{
+			policy: "style-src https://bar.com",
+			page:   "https://google.com",
+			html:   `<link rel="stylesheet" href="https://bar.com/style.css">`,
+			valid:  true,
+		},
+		{
+			policy: "style-src 'self'",
+			page:   "https://google.com",
+			html:   `<link rel="stylesheet" href="style.css">`,
+			valid:  true,
+		},
 	}
 
 	for i, c := range cases {

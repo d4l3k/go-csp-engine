@@ -38,7 +38,8 @@ func ValidatePage(p Policy, page url.URL, html io.Reader) (bool, []Report, error
 					err2 = err
 					return
 				}
-				ctx.URL = *parsed
+
+				ctx.URL = *page.ResolveReference(parsed)
 			} else {
 				ctx.Body = []byte(s.Text())
 				ctx.UnsafeInline = true
@@ -79,7 +80,7 @@ func ValidatePage(p Policy, page url.URL, html io.Reader) (bool, []Report, error
 					err2 = err
 					return
 				}
-				ctx.URL = *parsed
+				ctx.URL = *page.ResolveReference(parsed)
 			}
 
 			v, err := directive.Check(ctx)
