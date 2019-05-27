@@ -21,17 +21,19 @@ func checkErr(t *testing.T, got error, want string) {
 	}
 }
 
+type testCase struct {
+	name                   string
+	policy                 string
+	page                   string
+	html                   string
+	valid                  bool
+	policyErr, validateErr string
+}
+
 func TestCSP(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name                   string
-		policy                 string
-		page                   string
-		html                   string
-		valid                  bool
-		policyErr, validateErr string
-	}{
+	cases := []testCase{
 		{
 			policy: "default-src 'self'",
 			page:   "https://google.com",
@@ -138,7 +140,7 @@ func TestCSP(t *testing.T) {
 		},
 		{
 			name:   "parse inline stylesheets for @font-face imports",
-			policy: "style-src 'unsafe-inline'",
+			policy: "style-src 'unsafe-inline'; font-src 'none'",
 			page:   "https://google.com",
 			html: `<style>@font-face {
 				font-family: "Open Sans";
@@ -166,6 +168,77 @@ func TestCSP(t *testing.T) {
 			html:   `<script>blah</script>`,
 			valid:  false,
 		},
+		{
+			policy: "img-src 'self'",
+			page:   "https://google.com",
+			html:   `<img src="https://google.com" />`,
+			valid:  true,
+		},
+		{
+			policy: "img-src 'self'",
+			page:   "https://google.com",
+			html:   `<img src="https://blah.com" />`,
+			valid:  false,
+		},
+		{
+			name:   "mixed-content img",
+			policy: "default-src 'self'",
+			page:   "https://google.com",
+			html:   `<img src="http://google.com" />`,
+			valid:  true,
+		},
+		{
+			name:   "mixed-content script",
+			policy: "default-src 'self'",
+			page:   "https://google.com",
+			html:   `<script src="http://google.com"></script>`,
+			valid:  false,
+		},
+		{
+			name:   "upgrade-insecure-requests valid",
+			policy: "upgrade-insecure-requests",
+			page:   "https://google.com",
+			html:   `<img src="http://google.com" />`,
+			valid:  true,
+		},
+		{
+			name:   "block-all-mixed-content insecure",
+			policy: "block-all-mixed-content",
+			page:   "https://google.com",
+			html:   `<img src="http://google.com" />`,
+			valid:  false,
+		},
+		{
+			name:   "block-all-mixed-content secure",
+			policy: "block-all-mixed-content",
+			page:   "https://google.com",
+			html:   `<img src="https://google.com" />`,
+			valid:  true,
+		},
+		{
+			name:   "block-all-mixed-content + upgrade-insecure-requests",
+			policy: "block-all-mixed-content; upgrade-insecure-requests",
+			page:   "https://google.com",
+			html:   `<img src="http://google.com" />`,
+			valid:  true,
+		},
+		{
+			name:   "report-uri parses",
+			policy: "report-uri https://foo.com",
+			page:   "https://bar.com",
+			html:   ``,
+			valid:  true,
+		},
+		{
+			name:   "default policy allows everything",
+			policy: "font-src 'none'",
+			page:   "https://bar.com",
+			html: `
+				<script src="http://foobar.com" />
+				<script src="https://foobar.com" />
+			`,
+			valid: true,
+		},
 	}
 
 	for i, c := range cases {
@@ -173,6 +246,8 @@ func TestCSP(t *testing.T) {
 		c := c
 		t.Run(fmt.Sprintf("%d.%s", i, c.name), func(t *testing.T) {
 			t.Parallel()
+
+			t.Logf("testCase{%q, %q, %q}", c.policy, c.page, c.html)
 
 			p, err := ParsePolicy(c.policy)
 			checkErr(t, err, c.policyErr)

@@ -4,12 +4,15 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 )
 
 // Policy represents the entire CSP policy and its directives.
 type Policy struct {
-	Directives map[string]Directive
+	Directives              map[string]Directive
+	UpgradeInsecureRequests bool
+	BlockAllMixedContent    bool
 }
 
 // ParsePolicy parses all the directives in a CSP policy.
@@ -40,6 +43,18 @@ func ParsePolicy(policy string) (Policy, error) {
 				return Policy{}, err
 			}
 
+		case "upgrade-insecure-requests":
+			if len(fields) != 1 {
+				return Policy{}, errors.Errorf("upgrade-insecure-requests expects 0 field; got %q", directive)
+			}
+			p.UpgradeInsecureRequests = true
+
+		case "block-all-mixed-content":
+			if len(fields) != 1 {
+				return Policy{}, errors.Errorf("block-all-mixed-content expects 0 field; got %q", directive)
+			}
+			p.BlockAllMixedContent = true
+
 		default:
 			return Policy{}, errors.Errorf("unknown directive %q", directive)
 		}
@@ -65,5 +80,13 @@ func (p Policy) Directive(name string) Directive {
 	if ok {
 		return d
 	}
-	return SourceDirective{None: true}
+
+	// If no directives use default policy.
+	g, err := glob.Compile("*://*")
+	if err != nil {
+		panic(err)
+	}
+	return SourceDirective{
+		Hosts: []glob.Glob{g},
+	}
 }

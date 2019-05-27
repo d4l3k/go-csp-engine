@@ -1,7 +1,6 @@
 package csp
 
 import (
-	"log"
 	"net/url"
 	"strings"
 
@@ -32,7 +31,6 @@ func parseCSSURL(s string) (string, error) {
 // ValidateStylesheet validates a stylesheet for CSP violations from imports and
 // font-face sources.
 func ValidateStylesheet(p Policy, page url.URL, css string) (bool, []Report, error) {
-	log.Printf("validate stylesheet %q", css)
 	stylesheet, err := parser.Parse(css)
 	if err != nil {
 		return false, nil, err
@@ -55,7 +53,6 @@ func ValidateStylesheet(p Policy, page url.URL, css string) (bool, []Report, err
 			if err != nil {
 				return false, nil, err
 			}
-			log.Println(imp)
 
 			ctx := SourceContext{
 				Page: page,
@@ -67,13 +64,12 @@ func ValidateStylesheet(p Policy, page url.URL, css string) (bool, []Report, err
 
 			ctx.URL = *page.ResolveReference(parsed)
 
-			v, err := directive.Check(ctx)
+			v, err := directive.Check(p, ctx)
 			if err != nil {
 				return false, nil, err
 			}
-			log.Printf("%+v; %+v; %+v", v, ctx, directive)
 			if !v {
-				reports = append(reports, ctx.Report(directiveName, directive, ctx))
+				reports = append(reports, ctx.Report(directiveName, directive))
 			}
 		} else if rule.Name == "@font-face" {
 			for _, decl := range rule.Declarations {
@@ -92,7 +88,6 @@ func ValidateStylesheet(p Policy, page url.URL, css string) (bool, []Report, err
 					if err != nil {
 						return false, nil, err
 					}
-					log.Println(imp)
 
 					ctx := SourceContext{
 						Page: page,
@@ -104,13 +99,12 @@ func ValidateStylesheet(p Policy, page url.URL, css string) (bool, []Report, err
 
 					ctx.URL = *page.ResolveReference(parsed)
 
-					v, err := directiveFont.Check(ctx)
+					v, err := directiveFont.Check(p, ctx)
 					if err != nil {
 						return false, nil, err
 					}
-					log.Printf("%+v; %+v; %+v", v, ctx, directiveFont)
 					if !v {
-						reports = append(reports, ctx.Report(directiveFontName, directiveFont, ctx))
+						reports = append(reports, ctx.Report(directiveFontName, directiveFont))
 					}
 				}
 			}

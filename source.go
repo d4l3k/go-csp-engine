@@ -34,13 +34,14 @@ type Report struct {
 	Context       SourceContext
 }
 
-func (s SourceContext) Report(name string, directive Directive, ctx SourceContext) Report {
+// Report returns a report with the specified parameters.
+func (s SourceContext) Report(name string, directive Directive) Report {
 	return Report{
 		Document:      s.Page.String(),
 		Blocked:       s.URL.String(),
 		DirectiveName: name,
 		Directive:     directive,
-		Context:       ctx,
+		Context:       s,
 	}
 }
 
@@ -84,11 +85,15 @@ func urlSchemeHost(u url.URL) string {
 }
 
 // Check that the SourceContext is allowed for this SourceDirective.
-func (s SourceDirective) Check(ctx SourceContext) (bool, error) {
+func (s SourceDirective) Check(p Policy, ctx SourceContext) (bool, error) {
 	if s.None {
 		return false, nil
 	}
 	if ctx.UnsafeEval && !s.UnsafeEval {
+		return false, nil
+	}
+	// Block all insecure requests if block-all-mixed-content is set.
+	if p.BlockAllMixedContent && ctx.Page.Scheme == "https" && ctx.URL.Scheme == "http" {
 		return false, nil
 	}
 
