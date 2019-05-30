@@ -8,7 +8,7 @@ Features:
 
 * Checks script, img, audio, video, track, iframe, object, embed, applet, style,
   base tags.
-* Checks `link` tags for stylesheet, prefetch, prerender, and manifest types.
+* Checks `link` tags for stylesheet, prefetch, prerender, icon, and manifest types.
 * Checks unsafe inline style and script tags for nonce & hash.
 * Check stylesheet @import and @font-face external URLs.
 
