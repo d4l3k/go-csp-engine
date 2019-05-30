@@ -181,6 +181,18 @@ func TestCSP(t *testing.T) {
 			valid:  false,
 		},
 		{
+			policy: "img-src 'self'",
+			page:   "https://google.com",
+			html:   `<link rel="icon" href="https://blah.com" />`,
+			valid:  false,
+		},
+		{
+			policy: "img-src 'self'",
+			page:   "https://google.com",
+			html:   `<link rel="apple-touch-icon" href="https://blah.com" />`,
+			valid:  false,
+		},
+		{
 			name:   "mixed-content img",
 			policy: "default-src 'self'",
 			page:   "https://google.com",

@@ -94,6 +94,7 @@ func ValidatePage(p Policy, page url.URL, html io.Reader) (bool, []Report, error
 		"style-src":    "link[rel=stylesheet]",
 		"prefetch-src": "link[rel=prefetch], link[rel=prerender]",
 		"manifest-src": "link[rel=manifest]",
+		"img-src":      "link[rel=icon], link[rel=apple-touch-icon]",
 	}
 	for directiveName, elems := range hrefTypes {
 		directive := p.Directive(directiveName)
